@@ -1,0 +1,53 @@
+[project]
+name = "scag-model-analysis"
+version = "0.1.0"
+description = "SCAG I-5 Analysis - Transportation modeling and AADT calculations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Data processing
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    # Excel file handling
+    "openpyxl>=3.1.0",
+    "xlsxwriter>=3.1.0",
+    # Data validation and typing
+    "pydantic>=2.0.0",
+    # Progress bars
+    "tqdm>=4.65.0",
+    # Command line interface
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+# Testing dependencies
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+# Code quality dependencies
+dev = [
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+]
+# All optional dependencies
+all = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"

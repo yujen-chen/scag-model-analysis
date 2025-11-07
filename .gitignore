@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# coding
+.claude
+
+# testing
+.pytest_cache/
+
+# docs
+docs/
+
+# Crash dumps
+*.stackdump
+*.dump
+*.stackdump
+.DS_Store
+Thumbs.db
