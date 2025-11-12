@@ -2,7 +2,6 @@
 name = "scag-model-analysis"
 version = "0.1.0"
 description = "SCAG I-5 Analysis - Transportation modeling and AADT calculations"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Data processing

@@ -142,11 +142,11 @@ LANE_FIELDS = {
 }
 
 # ============================================================================
-# FACILITY TYPES AND DIRECTIONS
+# LANE TYPES AND DIRECTIONS
 # ============================================================================
 
-# Facility types
-FACILITY_TYPES = {"ML": "Main Lanes", "HV": "HOV Lanes"}
+# Lane types
+LANE_TYPES = {"ML": "Main Lanes", "HV": "HOV Lanes"}
 
 # Direction codes
 DIRECTIONS = {
@@ -157,10 +157,10 @@ DIRECTIONS = {
 }
 
 # Direction field name in CSV
-DIRECTION_FIELD = "DIR"
+DIRECTION_FIELD = "DIRECT"
 
-# Facility type field name in CSV
-FACILITY_FIELD = "AB_FACILIT"
+# Lane type field name in CSV
+TYPE_FIELD = "TYPE"
 
 # ============================================================================
 # SECTION DEFINITIONS

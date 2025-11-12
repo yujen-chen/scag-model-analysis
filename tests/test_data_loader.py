@@ -1,6 +1,5 @@
 """
 Unit tests for DataLoader class
-DataLoader 類別的單元測試
 """
 
 import pytest
@@ -15,7 +14,7 @@ class TestDataLoader:
         """Test DataLoader initialization"""
         loader = DataLoader()
         assert loader is not None
-        assert hasattr(loader, 'data_dir')
+        assert hasattr(loader, "data_dir")
 
     def test_load_section_data(self):
         """Test loading section data"""
@@ -27,7 +26,7 @@ class TestDataLoader:
         assert len(df) > 0
 
         # Check required columns exist
-        required_columns = ['AADT', 'DIR', 'AB_FACILIT', 'LENGTH']
+        required_columns = ["AADT", "DIR", "AB_FACILIT", "LENGTH"]
         for col in required_columns:
             assert col in df.columns, f"Missing column: {col}"
 
@@ -43,9 +42,9 @@ class TestDataLoader:
         df = loader.load_section_data(2019, 1)
 
         # AADT should be numeric
-        assert pd.api.types.is_numeric_dtype(df['AADT'])
+        assert pd.api.types.is_numeric_dtype(df["AADT"])
         # LENGTH should be numeric
-        assert pd.api.types.is_numeric_dtype(df['LENGTH'])
+        assert pd.api.types.is_numeric_dtype(df["LENGTH"])
 
 
 if __name__ == "__main__":

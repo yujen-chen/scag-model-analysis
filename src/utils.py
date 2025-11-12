@@ -169,13 +169,12 @@ def calculate_capacity(
 ) -> Union[pd.Series, float]:
     """
     Calculate roadway capacity based on number of lanes.
-    根據車道數計算道路容量。
 
     Args:
         num_lanes: Number of lanes (車道數)
 
     Returns:
-        Capacity in PCE/hour (容量，單位：PCE/小時)
+        Capacity in PCE/hour
     """
     return num_lanes * config.CAPACITY_PER_LANE
 
@@ -235,7 +234,6 @@ def validate_data(
 ) -> Tuple[bool, List[str]]:
     """
     Validate data values are within reasonable ranges.
-    驗證資料值是否在合理範圍內。
 
     Args:
         df: DataFrame to validate (要驗證的 DataFrame)
@@ -307,7 +305,6 @@ def format_number(value: float, format_type: str = "integer") -> str:
 def get_direction_name(direction_code: str, language: str = "en") -> str:
     """
     Get full direction name from direction code.
-    從方向代碼獲取完整方向名稱。
 
     Args:
         direction_code: 'N' or 'S'
