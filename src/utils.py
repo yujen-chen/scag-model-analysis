@@ -216,11 +216,11 @@ def aggregate_by_direction_facility(
         Aggregated DataFrame (聚合後的 DataFrame)
     """
     if method == "mean":
-        grouped = df.groupby([config.DIRECTION_FIELD, config.FACILITY_FIELD])[
+        grouped = df.groupby([config.DIRECTION_FIELD, config.TYPE_FIELD])[
             value_column
         ].mean()
     elif method == "sum":
-        grouped = df.groupby([config.DIRECTION_FIELD, config.FACILITY_FIELD])[
+        grouped = df.groupby([config.DIRECTION_FIELD, config.TYPE_FIELD])[
             value_column
         ].sum()
     else:
@@ -236,13 +236,12 @@ def validate_data(
     Validate data values are within reasonable ranges.
 
     Args:
-        df: DataFrame to validate (要驗證的 DataFrame)
-        column: Column name to validate (要驗證的欄位名稱)
-        range_key: Key in VALIDATION_RANGES config (VALIDATION_RANGES 配置中的鍵)
+        df: DataFrame to validate
+        column: Column name to validate
+        range_key: Key in VALIDATION_RANGES config
 
     Returns:
         Tuple of (is_valid, error_messages)
-        (is_valid, error_messages 的元組)
     """
     is_valid = True
     errors = []

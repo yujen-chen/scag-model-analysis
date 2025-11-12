@@ -24,42 +24,49 @@ class AADTCalculator:
     2. Group level - Average AADT for groups of continuous segments
     """
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame) -> None:
         """
         Initialize the calculator with traffic data.
 
         Args:
             df: DataFrame containing segment traffic data
         """
-        self.df = df
+        self.df = df.copy()
         self.results = {}
 
     def calculate_segment_aadt(self) -> pd.DataFrame:
         """
         Calculate AADT for each section
         """
+        log_analysis_step("AADTCalculator", "Starting segment AADT calculation")
         total_aadt, auto_aadt, truck_aadt = calculate_aadt(self.df)
         self.df["TOTAL_AADT"] = total_aadt
         self.df["AUTO_AADT"] = auto_aadt
         self.df["TRUCK_AADT"] = truck_aadt
 
         self.df["TRUCK_PCT"] = np.where(
-            self.df["TRUCK_AADT"] > 0,
+            self.df["TOTAL_AADT"] > 0,
             (self.df["TRUCK_AADT"] / self.df["TOTAL_AADT"]) * 100,
             0,
         )
 
+        is_valid, errors = validate_data(self.df, "TOTAL_AADT", "aadt")
+        if not is_valid:
+            logger.warning(f"AADT validation error: {errors}")
+        log_analysis_step(
+            "AADTCalculator", f"Calculated AADT for {len(self.df)} segments"
+        )
         return self.df
 
-    def calculate_group_average_aadt(self, direction: str, type: str) -> Dict:
+    def calculate_group_average_aadt(self, direction: str, facility_type: str) -> Dict:
         """
-        Calculate avg AADT for a specific section (direction & type)
+        Calculate avg AADT for a specific section (direction & facility_type)
 
-        Augs:
-        - direction (str): N, S, E, W
-        - type (str): ML, HV
+        Args:
+        direction (str): N, S, E, W
+        facility_type (str): ML, HV
 
-        Retrun:
+        Returns:
         {
         'direction': 'N',
         'type': 'ML',
@@ -74,16 +81,17 @@ class AADTCalculator:
         """
 
         mask = (self.df[config.DIRECTION_FIELD] == direction) & (
-            self.df[config.TYPE_FIELD] == type
+            self.df[config.TYPE_FIELD] == facility_type
         )
         group_df = self.df[mask]
 
         if len(group_df) == 0:
-            logger.warning(f"no data for {direction}-{type}")
+            logger.warning(f"no data for {direction}-{facility_type}")
+            return None
 
         result = {
             "direction": direction,
-            "type": type,
+            "type": facility_type,
             "num_segments": len(group_df),
             "avg_total_aadt": group_df["TOTAL_AADT"].mean(),
             "avg_auto_aadt": group_df["AUTO_AADT"].mean(),
@@ -97,7 +105,28 @@ class AADTCalculator:
 
     def calculate_all_groups(self) -> pd.DataFrame:
         """
-        use calculate_group_average_aadt function to generate dataframe
+        Calculate average AADT for all direction and facility type combinations.
+
+        This method iterates through all unique combinations of direction and facility type,
+        calculates their average AADT, and returns a DataFrame with all results.
+
+        Returns:
+        pd.DataFrame: DataFrame with columns:
+        - direction: Direction code
+        - type: Facility type
+        - num_segments: Number of segments in group
+        - total_aadt: Average total AADT
+        - auto_aadt: Average auto AADT
+        - truck_aadt: Average truck AADT
+        - truck_pct: Average truck percentage
+        - min_aadt: Minimum AADT in group
+        - max_aadt: Maximum AADT in group
+
+        Example:
+        >>> calculator = AADTCalculator(df)
+        >>> calculator.calculate_segment_aadt()
+        >>> summary = calculator.calculate_all_groups()
+        >>> print(summary.head())
 
         """
         directions = self.df[config.DIRECTION_FIELD].unique()
@@ -105,10 +134,10 @@ class AADTCalculator:
 
         results_list = []
         for direction in directions:
-            for type in types:
-                result = self.calculate_group_average_aadt(direction, type)
+            for facility_type in types:
+                result = self.calculate_group_average_aadt(direction, facility_type)
 
-                if result:
+                if result is not None:
                     results_list.append(result)
 
         summary_df = pd.DataFrame(results_list)
@@ -147,22 +176,22 @@ class AADTCalculator:
           }
         """
         summary_df = self.calculate_all_groups()
+
         total_segments = summary_df["num_segments"].sum()
-        total_aadt_sum = summary_df["total_aadt"].sum()
         avg_aadt = summary_df["total_aadt"].mean()
         min_aadt = summary_df["total_aadt"].min()
         max_aadt = summary_df["total_aadt"].max()
         avg_truck_pct = summary_df["truck_pct"].mean()
         directions = summary_df["direction"].nunique()
         facilities = summary_df["type"].nunique()
+
         summary_dict = {
-            "total_segments": total_segments,
-            "total_aadt_sum": total_aadt_sum,
-            "avg_aadt": avg_aadt,
-            "min_aadt": min_aadt,
-            "max_aadt": max_aadt,
-            "avg_truck_pct": avg_truck_pct,
-            "directions": directions,
-            "facilities": facilities,
+            "total_segments": int(total_segments),
+            "avg_aadt": float(avg_aadt),
+            "min_aadt": float(min_aadt),
+            "max_aadt": float(max_aadt),
+            "avg_truck_pct": float(avg_truck_pct),
+            "directions": int(directions),
+            "facilities": int(facilities),
         }
         return summary_dict

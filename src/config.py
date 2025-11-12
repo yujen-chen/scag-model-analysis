@@ -146,7 +146,7 @@ LANE_FIELDS = {
 # ============================================================================
 
 # Lane types
-LANE_TYPES = {"ML": "Main Lanes", "HV": "HOV Lanes"}
+FACILITY_TYPES = {"ML": "Main Lanes", "HV": "HOV Lanes"}
 
 # Direction codes
 DIRECTIONS = {
