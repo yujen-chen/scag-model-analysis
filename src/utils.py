@@ -184,7 +184,6 @@ def calculate_vc_ratio(
 ) -> Union[pd.Series, float]:
     """
     Calculate Volume to Capacity (V/C) ratio.
-    計算流量容量 (V/C) 比率。
 
     Args:
         pce_flow: PCE flow (PCE 流量)
