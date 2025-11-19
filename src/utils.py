@@ -159,7 +159,7 @@ def calculate_pce_flow(
         truck_flow: Truck flow
 
     Returns:
-        PCE flow (PCE 流量)
+        PCE flow
     """
     return total_flow + truck_flow
 
@@ -171,7 +171,7 @@ def calculate_capacity(
     Calculate roadway capacity based on number of lanes.
 
     Args:
-        num_lanes: Number of lanes (車道數)
+        num_lanes: Number of lanes
 
     Returns:
         Capacity in PCE/hour
@@ -186,8 +186,8 @@ def calculate_vc_ratio(
     Calculate Volume to Capacity (V/C) ratio.
 
     Args:
-        pce_flow: PCE flow (PCE 流量)
-        capacity: Roadway capacity (道路容量)
+        pce_flow: PCE flow
+        capacity: Roadway capacity
 
     Returns:
         V/C ratio (V/C 比率)
@@ -204,15 +204,14 @@ def aggregate_by_direction_facility(
 ) -> pd.DataFrame:
     """
     Aggregate segment data by direction and facility type.
-    按方向和設施類型聚合路段資料。
 
     Args:
-        df: DataFrame with segment data (包含路段資料的 DataFrame)
-        value_column: Column name to aggregate (要聚合的欄位名稱)
-        method: Aggregation method ('mean' or 'sum') (聚合方法：'mean' 或 'sum')
+        df: DataFrame with segment data
+        value_column: Column name to aggregate
+        method: Aggregation method ('mean' or 'sum')
 
     Returns:
-        Aggregated DataFrame (聚合後的 DataFrame)
+        Aggregated DataFrame
     """
     if method == "mean":
         grouped = df.groupby([config.DIRECTION_FIELD, config.TYPE_FIELD])[
@@ -271,15 +270,13 @@ def validate_data(
 def format_number(value: float, format_type: str = "integer") -> str:
     """
     Format number according to specified format type.
-    根據指定的格式類型格式化數字。
 
     Args:
-        value: Number to format (要格式化的數字)
+        value: Number to format
         format_type: Format type from config.NUMBER_FORMATS
-                     (來自 config.NUMBER_FORMATS 的格式類型)
 
     Returns:
-        Formatted string (格式化後的字串)
+        Formatted string
     """
     if pd.isna(value):
         return "-"
