@@ -123,7 +123,7 @@ class CapacityAnalyzer:
         # calculate lane capacity
         self.df[f"{period}_CAPACITY"] = calculate_capacity(self.df[period_lane])
 
-        self.df[f"{period}_VC_ratio"] = calculate_vc_ratio(
+        self.df[f"{period}_VC_RATIO"] = calculate_vc_ratio(
             pce_flow=self.df[f"{period}_PCE_FLOW"],
             capacity=self.df[f"{period}_CAPACITY"],
         )
@@ -306,7 +306,7 @@ class CapacityAnalyzer:
         if f"{period}_CAPACITY" not in self.df.columns:
             raise ValueError(f"{period}_CAPACITY column should be in the DataFrame")
 
-        log_analysis_step("Capacity Analyze", "Analyzing {period} Group Capacity.")
+        log_analysis_step("Capacity Analyzer", f"Analyzing {period} Group Capacity.")
 
         directions = self.df[config.DIRECTION_FIELD].unique()
         facility_types = self.df[config.TYPE_FIELD].unique()
@@ -318,12 +318,18 @@ class CapacityAnalyzer:
                     direction=direction, facility_type=facility_type, period=period
                 )
 
-                result_list.append(result)
+                if result is not None:
+                    result_list.append(result)
 
         summary_df = pd.DataFrame(result_list)
 
         summary_df = summary_df.sort_values(["direction", "type"]).reset_index(
             drop=True
+        )
+
+        log_analysis_step(
+            "Capacity Analyzer",
+            f"Completed {period} group capacity analysis for {len(summary_df)} groups.",
         )
 
         return summary_df
@@ -379,6 +385,172 @@ class CapacityAnalyzer:
             raise ValueError(f"{period}_LOS column is missing.")
 
         log_analysis_step(
-            "Peak Hour Analyzer", f"Getting LOS distributions for {period}."
+            "Capacity Analyzer", f"Getting LOS distributions for {period}."
         )
-        pass
+        period_LOS = self.df[f"{period}_LOS"]
+        period_vc_ratio = self.df[f"{period}_VC_RATIO"]
+
+        # Get LOS counts and calculate percentages safely
+        los_counts = period_LOS.value_counts()
+        total_segments = len(period_LOS)
+
+        # Calculate percentages for each LOS, handling missing grades
+        los_percentages = {}
+        for los_grade in ["A", "B", "C", "D", "E", "F"]:
+            count = los_counts.get(los_grade, 0)
+            los_percentages[los_grade] = (
+                (count / total_segments) * 100 if total_segments > 0 else 0.0
+            )
+
+        result_dict = {
+            "period": period,
+            "total_segments": total_segments,
+            "los_counts": los_counts.to_dict(),
+            "los_percentages": los_percentages,
+            "avg_vc_ratio": float(period_vc_ratio.mean()),
+            "segments_over_capacity": int((period_vc_ratio > 1).sum()),
+            "percentage_over_capacity": (
+                (period_vc_ratio > 1).sum() / len(period_vc_ratio)
+            )
+            * 100,
+        }
+
+        return result_dict
+
+    def compare_am_pm_capacity(self) -> pd.DataFrame:
+        """
+        Compare AM and PM capacity metrics side by side.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns:
+                - direction: Direction code
+                - type: Facility type
+                - am_vc_ratio: Average AM V/C ratio
+                - pm_vc_ratio: Average PM V/C ratio
+                - am_los: Dominant AM LOS
+                - pm_los: Dominant PM LOS
+                - vc_diff: Absolute difference in V/C ratios
+                - worse_period: 'AM' or 'PM' (period with higher V/C ratio)
+
+        Example:
+            >>> analyzer = CapacityAnalyzer(df)
+            >>> analyzer.calculate_all_periods_capacity()
+            >>> comparison = analyzer.compare_am_pm_capacity()
+            >>> print(comparison)
+
+        Steps to implement:
+            1. Check if capacity columns exist for both periods
+            2. Log the start of calculation
+            3. Get AM capacity summary using calculate_all_groups_capacity('AM')
+            4. Get PM capacity summary using calculate_all_groups_capacity('PM')
+            5. Select relevant columns and rename for clarity
+            6. Merge the two DataFrames on ['direction', 'type']
+            7. Calculate absolute difference in V/C ratios
+            8. Determine worse period (higher V/C ratio) using np.where
+            9. Log completion
+            10. Return comparison DataFrame
+        """
+        if "AM_CAPACITY" not in self.df.columns:
+            raise ValueError("AM_CAPACITY must be in the table")
+        if "PM_CAPACITY" not in self.df.columns:
+            raise ValueError("PM_CAPACITY must be in the table")
+
+        log_analysis_step("Capacity Analyzer", "Start comparing am and pm capacity")
+        am_capacity_df = self.calculate_all_groups_capacity("AM")
+        pm_capacity_df = self.calculate_all_groups_capacity("PM")
+
+        am_cols = am_capacity_df[
+            ["direction", "type", "avg_vc_ratio", "dominant_los"]
+        ].rename(columns={"avg_vc_ratio": "am_vc_ratio", "dominant_los": "am_los"})
+        pm_cols = pm_capacity_df[
+            ["direction", "type", "avg_vc_ratio", "dominant_los"]
+        ].rename(columns={"avg_vc_ratio": "pm_vc_ratio", "dominant_los": "pm_los"})
+
+        summary_df = am_cols.merge(pm_cols, on=["direction", "type"])
+
+        summary_df["vc_diff"] = (
+            summary_df["am_vc_ratio"] - summary_df["pm_vc_ratio"]
+        ).abs()
+
+        summary_df["worse_period"] = np.where(
+            summary_df["am_vc_ratio"] > summary_df["pm_vc_ratio"],
+            "AM",
+            np.where(
+                summary_df["pm_vc_ratio"] > summary_df["am_vc_ratio"], "PM", "EQUAL"
+            ),
+        )
+
+        log_analysis_step("Capacity Analyzer", "Complete comparing am and pm capacity")
+
+        return summary_df
+
+    def identify_bottlenecks(
+        self, period: str, vc_threshold: float = 0.85
+    ) -> pd.DataFrame:
+        """
+        Identify bottleneck segments where V/C ratio exceeds a threshold.
+
+        Args:
+            period: Time period ('AM' or 'PM')
+            vc_threshold: V/C ratio threshold for bottleneck (default 0.85)
+
+        Returns:
+            pd.DataFrame: DataFrame containing bottleneck segments with columns:
+                - Segment identification columns (direction, type, etc.)
+                - V/C ratio
+                - LOS grade
+                - Peak flow
+                - Capacity
+                - Sorted by V/C ratio (descending)
+
+        Example:
+            >>> analyzer = CapacityAnalyzer(df)
+            >>> analyzer.calculate_all_periods_capacity()
+            >>> bottlenecks = analyzer.identify_bottlenecks('AM', vc_threshold=0.85)
+            >>> print(f"Found {len(bottlenecks)} bottleneck segments")
+            >>> print(bottlenecks[['direction', 'type', 'AM_VC_RATIO', 'AM_LOS']])
+
+        Steps to implement:
+            1. Validate period parameter
+            2. Validate vc_threshold (should be between 0 and 3.0)
+            3. Check if V/C ratio column exists
+            4. Log the start of calculation
+            5. Filter segments where V/C ratio > threshold
+            6. Select relevant columns (direction, type, V/C ratio, LOS, flow, capacity)
+            7. Sort by V/C ratio in descending order
+            8. Log how many bottlenecks found
+            9. Return filtered and sorted DataFrame
+        Returns:
+            pd.DataFrame: DataFrame with original data plus new capacity columns:
+                - {period}_PCE_FLOW: PCE flow for the period
+                - {period}_CAPACITY: Roadway capacity for the period
+                - {period}_VC_RATIO: Volume to Capacity ratio
+                - {period}_LOS: Level of Service grade (A-F)
+        """
+        if period not in ["AM", "PM"]:
+            raise ValueError(f"period should be 'AM' or 'PM'.")
+        if (vc_threshold < 0) or (vc_threshold > 3):
+            raise ValueError(f"vc_threshold should be between 0 and 3.0.")
+
+        if f"{period}_VC_RATIO" not in self.df.columns:
+            raise ValueError(f"{period}_VC_RATIO column should exists in the table")
+
+        log_analysis_step("Capacity Analyzer", "Start identifying bottlenecks")
+
+        result_df = self.df[(self.df[f"{period}_VC_RATIO"] > vc_threshold)]
+        result_df = result_df[
+            [
+                "direction",
+                "type",
+                f"{period}_VC_RATIO",
+                f"{period}_LOS",
+                f"{period}_PCE_FLOW",
+                f"{period}_CAPACITY",
+            ]
+        ]
+        result_df = result_df.sort_values(f"{period}_VC_RATIO", ascending=False)
+        log_analysis_step(
+            "Capacity Analyzer",
+            f"Completed identifying bottlenecks, there are {len(result_df)} segments identified as bottlenecks.",
+        )
+        return result_df
