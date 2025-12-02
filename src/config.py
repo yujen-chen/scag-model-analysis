@@ -161,6 +161,7 @@ DIRECTION_FIELD = "DIRECT"
 
 # Lane type field name in CSV
 TYPE_FIELD = "TYPE"
+FACILITY_FIELD = TYPE_FIELD  # Alias for backward compatibility
 
 # ============================================================================
 # SECTION DEFINITIONS
