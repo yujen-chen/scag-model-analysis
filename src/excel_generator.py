@@ -83,8 +83,7 @@ class ExcelGenerator:
             4. Create Alignment: Center horizontal and vertical
             5. Return dictionary with all style objects
         """
-        # TODO: Implement this method
-        # Hint: Use Font, PatternFill, Border, Side, Alignment from openpyxl.styles
+
         style_dict = {
             "font": Font(name="Calibri", size=12, bold=True, color="FFFFFF"),
             "fill": PatternFill(
@@ -135,12 +134,13 @@ class ExcelGenerator:
             4. Check if alignment is provided, apply to cell.alignment
             5. Check if number_format is provided, apply to cell.number_format
         """
-        # TODO: Implement this method
-        # Hint: Use if statements to check if each parameter is not None
+
         if font is not None:
             cell.font = font
         if fill is not None:
             cell.fill = fill
+        if border is not None:
+            cell.border = border
         if alignment is not None:
             cell.alignment = alignment
         if number_format is not None:
@@ -165,7 +165,8 @@ class ExcelGenerator:
         """
         # TODO: Implement this method
         # Hint: Use worksheet.column_dimensions
-        pass
+        for key, value in widths.items():
+            worksheet.column_dimensions[key].width = value
 
     def create_summary_sheet(
         self, summary_data: pd.DataFrame, sheet_name: str = "Summary_all"
@@ -206,6 +207,38 @@ class ExcelGenerator:
         # Hint 1: Use ws.append() to write rows
         # Hint 2: Iterate through cells to apply formatting
         # Hint 3: Use dataframe.values.tolist() to get data rows
+        log_analysis_step("Excel Generator", "Start creating summary sheet")
+
+        ws = self.wb.create_sheet(sheet_name)
+        header_style = self._create_header_style()
+        ws.append(summary_data.columns)
+        for i in len(summary_data.columns):
+            self._apply_cell_style(
+                ws[1][i],
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        df_list = summary_data.values.tolist()
+        for raw in df_list:
+            ws.append(raw)
+        
+        num_data_raws = len(summary_data)
+        for row_idx in range(2, 2+num_data_raws):
+            for col_idx in range(len(summary_data)):
+                cell = ws.cell(row=row_idx, column=col_idx+1)
+                column_name = summary_data.columns[col_idx]
+
+                if "AADT" in column_name or "Peak" in column_name:
+                    cell.number_format = "#,##0"
+                elif "PCT" in column_name:
+                    cell.number_format = "0.0%"
+                elif "VC_Ratio" in column_name:
+                    cell.number-format = "0.00"
+                    
+
         pass
 
     def create_aadt_sheet(self, aadt_data: pd.DataFrame) -> None:
