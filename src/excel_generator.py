@@ -7,7 +7,6 @@ This module generates professional Excel reports with multiple sheets:
 - Professional formatting: fonts, colors, borders, number formats
 """
 
-from curses import start_color
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
@@ -212,23 +211,25 @@ class ExcelGenerator:
         ws = self.wb.create_sheet(sheet_name)
         header_style = self._create_header_style()
         ws.append(summary_data.columns)
-        for i in len(summary_data.columns):
+        for i in range(len(summary_data.columns)):
             self._apply_cell_style(
-                ws[1][i],
+                ws.cell(row=1, column=i + 1),
                 font=header_style["font"],
                 fill=header_style["fill"],
                 border=header_style["border"],
                 alignment=header_style["alignment"],
             )
 
+        # Write data rows
         df_list = summary_data.values.tolist()
-        for raw in df_list:
-            ws.append(raw)
-        
-        num_data_raws = len(summary_data)
-        for row_idx in range(2, 2+num_data_raws):
-            for col_idx in range(len(summary_data)):
-                cell = ws.cell(row=row_idx, column=col_idx+1)
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+        num_data_rows = len(summary_data)
+        for row_idx in range(2, 2 + num_data_rows):
+            for col_idx in range(len(summary_data.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
                 column_name = summary_data.columns[col_idx]
 
                 if "AADT" in column_name or "Peak" in column_name:
@@ -236,10 +237,30 @@ class ExcelGenerator:
                 elif "PCT" in column_name:
                     cell.number_format = "0.0%"
                 elif "VC_Ratio" in column_name:
-                    cell.number-format = "0.00"
-                    
+                    cell.number_format = "0.00"
 
-        pass
+        # set the column widths
+        column_widths = {
+            "A": 8,  # Year
+            "B": 12,  # Section
+            "C": 12,  # Direction
+            "D": 18,  # Type
+            "E": 15,  # AADT
+            "F": 12,  # Truck_PCT
+            "G": 12,  # Peak_AM
+            "H": 12,  # Peak_PM
+            "I": 13,  # VC_Ratio_AM
+            "J": 13,  # VC_Ratio_PM
+            "K": 10,  # LOS_AM
+            "L": 10,  # LOS_PM
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A2"
+
+        log_analysis_step("Excel Generator", "Completed creating summary sheet.")
 
     def create_aadt_sheet(self, aadt_data: pd.DataFrame) -> None:
         """
@@ -273,7 +294,77 @@ class ExcelGenerator:
         """
         # TODO: Implement this method
         # Hint: Similar to create_summary_sheet() but with different columns
-        pass
+
+        log_analysis_step("Excel Generator", "Start creating AADT sheet")
+
+        ws = self.wb.create_sheet("AADT_Analysis")
+
+        # create a title
+        ws["A1"] = "AADT Analysis by Direction and Facility Type"
+        ws.merge_cells("A1:I1")
+
+        # title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        # header formatting
+        header_style = self._create_header_style()
+        ws.append(aadt_data.columns)
+        for i in range(len(aadt_data.columns)):
+            self._apply_cell_style(
+                ws.cell(row=2, column=i + 1),
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # Write data rows
+        df_list = aadt_data.values.tolist()
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+        num_data_rows = len(aadt_data)
+        for row_idx in range(3, 3 + num_data_rows):
+            for col_idx in range(len(aadt_data.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
+                column_name = aadt_data.columns[col_idx]
+
+                if "AADT" in column_name or "Peak" in column_name:
+                    cell.number_format = "#,##0"
+                elif "PCT" in column_name:
+                    cell.number_format = "0.0%"
+
+                self._apply_cell_style(cell, border=header_style["border"])
+
+        # set the column widths
+        column_widths = {
+            "A": 12,  # Direction
+            "B": 18,  # Type
+            "C": 12,  # Num_Segments
+            "D": 15,  # Avg_AADT
+            "E": 15,  # Min_AADT
+            "F": 15,  # Max_AADT
+            "G": 15,  # Avg_Auto_AADT
+            "H": 15,  # Avg_Truck_AADT
+            "I": 15,  # Avg_Truck_PCT
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A3"
+
+        log_analysis_step("Excel Generator", "Completed creating aadt sheet.")
 
     def create_peak_hour_sheet(self, peak_data: pd.DataFrame) -> None:
         """
@@ -293,7 +384,78 @@ class ExcelGenerator:
         """
         # TODO: Implement this method
         # Hint: Follow same pattern as create_aadt_sheet()
-        pass
+
+        log_analysis_step("Excel Generator", "Start creating peak hour sheet")
+
+        ws = self.wb.create_sheet("Peak_Hour_Analysis")
+
+        # create a title
+        ws["A1"] = "Peak Hour Analysis by Period"
+        ws.merge_cells("A1:H1")
+
+        # title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        # header formatting
+        header_style = self._create_header_style()
+        ws.append(peak_data.columns)
+        for i in range(len(peak_data.columns)):
+            self._apply_cell_style(
+                ws.cell(row=2, column=i + 1),
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # Write data rows
+        df_list = peak_data.values.tolist()
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+        num_data_rows = len(peak_data)
+        for row_idx in range(3, 3 + num_data_rows):
+            for col_idx in range(len(peak_data.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
+                column_name = peak_data.columns[col_idx]
+
+                if "Peak" in column_name:
+                    cell.number_format = "#,##0"
+                elif "PCT" in column_name:
+                    cell.number_format = "0.0%"
+
+                self._apply_cell_style(cell, border=header_style["border"])
+
+        # set the column widths
+        column_widths = {
+            "A": 12,  # Direction
+            "B": 18,  # Type
+            "C": 12,  # Period
+            "D": 15,  # Avg_Peak_Total
+            "E": 15,  # Avg_Peak_Auto
+            "F": 15,  # Avg_Peak_Truck
+            "G": 15,  # Min_Peak_Total
+            "H": 15,  # Max_Peak_Total
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A3"
+
+        log_analysis_step(
+            "Excel Generator", "Completed creating peak hour analysis sheet."
+        )
 
     def create_capacity_sheet(self, capacity_data: pd.DataFrame) -> None:
         """
@@ -321,7 +483,95 @@ class ExcelGenerator:
         """
         # TODO: Implement this method
         # Hint: Add conditional formatting for LOS grades
-        pass
+        log_analysis_step("Excel Generator", "Start creating capacity sheet")
+
+        ws = self.wb.create_sheet("Capacity_Analysis")
+
+        # create a title
+        ws["A1"] = "Capacity Analysis by Period"
+        ws.merge_cells("A1:H1")
+
+        # title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        # header formatting
+        header_style = self._create_header_style()
+        ws.append(capacity_data.columns)
+        for i in range(len(capacity_data.columns)):
+            self._apply_cell_style(
+                ws.cell(row=2, column=i + 1),
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # Write data rows
+        df_list = capacity_data.values.tolist()
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+        num_data_rows = len(capacity_data)
+        for row_idx in range(3, 3 + num_data_rows):
+            for col_idx in range(len(capacity_data.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
+                column_name = capacity_data.columns[col_idx]
+
+                if "VC" in column_name:
+                    cell.number_format = "0.00"
+                elif "LOS" in column_name:
+                    cell.alignment = header_style["alignment"]
+                    if cell.value in ["A", "B"]:
+                        cell.fill = PatternFill(
+                            start_color="90EE90",
+                            end_color="90EE90",
+                            fill_type="solid",
+                        )
+                    elif cell.value in ["C", "D"]:
+                        cell.fill = PatternFill(
+                            start_color="FFFF00",
+                            end_color="FFFF00",
+                            fill_type="solid",
+                        )
+                    elif cell.value in ["E", "F"]:
+                        cell.fill = PatternFill(
+                            start_color="FF6347",
+                            end_color="FF6347",
+                            fill_type="solid",
+                        )
+
+                self._apply_cell_style(cell, border=header_style["border"])
+
+        # set the column widths
+        column_widths = {
+            "A": 12,  # Direction
+            "B": 18,  # Type
+            "C": 12,  # Period
+            "D": 15,  # Avg_PCE_Flow
+            "E": 18,  # Avg_Capacity
+            "F": 15,  # Avg_VC_Ratio
+            "G": 12,  # Dominant_LOS
+            "H": 12,  # LOS_Counts
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A3"
+
+        log_analysis_step(
+            "Excel Generator", "Completed creating capacity analysis sheet."
+        )
 
     def create_truck_sheet(self, truck_data: pd.DataFrame) -> None:
         """
@@ -342,7 +592,79 @@ class ExcelGenerator:
         """
         # TODO: Implement this method
         # Hint: Follow same pattern as other sheet creation methods
-        pass
+        log_analysis_step("Excel Generator", "Start creating truck analysis sheet")
+
+        ws = self.wb.create_sheet("Truck_Analysis")
+
+        # create a title
+        ws["A1"] = "Truck Analysis"
+        ws.merge_cells("A1:I1")
+
+        # title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        # header formatting
+        header_style = self._create_header_style()
+        ws.append(truck_data.columns)
+        for i in range(len(truck_data.columns)):
+            self._apply_cell_style(
+                ws.cell(row=2, column=i + 1),
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # Write data rows
+        df_list = truck_data.values.tolist()
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+
+        num_data_rows = len(truck_data)
+        for row_idx in range(3, 3 + num_data_rows):
+            for col_idx in range(len(truck_data.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
+                column_name = truck_data.columns[col_idx]
+
+                if "AADT" in column_name:
+                    cell.number_format = "#,##0"
+                elif "PCT" in column_name:
+                    cell.number_format = "0.0%"
+                elif "Ratio" in column_name or "Intensity" in column_name:
+                    cell.number_format = "0.00"
+
+                self._apply_cell_style(cell, border=header_style["border"])
+
+        # set the column widths
+        column_widths = {
+            "A": 12,  # Direction
+            "B": 18,  # Type
+            "C": 15,  # Avg_Truck_AADT
+            "D": 15,  # Avg_Truck_PCT
+            "E": 15,  # Avg_Truck_Intensity
+            "F": 15,  # Avg_AM_Truck_Ratio
+            "G": 15,  # Avg_PM_Truck_Ratio
+            "H": 15,  # Min_Truck_PCT
+            "I": 15,  # Max_Truck_PCT
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A3"
+
+        log_analysis_step("Excel Generator", "Completed creating truck analysis sheet.")
 
     def create_comparison_sheet(
         self, am_data: pd.DataFrame, pm_data: pd.DataFrame
@@ -379,7 +701,125 @@ class ExcelGenerator:
         # TODO: Implement this method
         # Hint: Use pd.merge() to combine AM and PM data
         # Hint: Use different fill colors for AM (blue) and PM (orange) headers
-        pass
+        log_analysis_step("Excel Generator", "Start creating period comparison sheet")
+
+        ws = self.wb.create_sheet("AM_vs_PM_Comparison")
+
+        merged_df = pd.merge(
+            am_data, pm_data, on=["Direction", "Type"], suffixes=("_AM", "_PM")
+        )
+
+        if "Avg_Peak_Total_AM" in merged_df.columns:
+            merged_df["Peak_Diff"] = (
+                merged_df["Avg_Peak_Total_AM"] - merged_df["Avg_Peak_Total_PM"]
+            ).abs()
+
+        if "Avg_VC_Ratio_AM" in merged_df.columns:
+            merged_df["VC_Ratio_Diff"] = (
+                merged_df["Avg_VC_Ratio_AM"] - merged_df["Avg_VC_Ratio_PM"]
+            ).abs()
+
+        if "Avg_Truck_PCT_AM" in merged_df.columns:
+            merged_df["Truck_PCT_Diff"] = (
+                merged_df["Avg_Truck_PCT_AM"] - merged_df["Avg_Truck_PCT_PM"]
+            ).abs()
+
+        # title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+
+        # create a title
+        ws["A1"] = "AM and PM comparison metrics"
+        num_cols = len(merged_df.columns)
+        last_col = get_column_letter(num_cols)
+        ws.merge_cells(f"A1:{last_col}1")
+
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        # header formatting
+        header_style = self._create_header_style()
+        ws.append(merged_df.columns)
+        for i in range(len(merged_df.columns)):
+            self._apply_cell_style(
+                ws.cell(row=2, column=i + 1),
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # Write data rows
+        df_list = merged_df.values.tolist()
+        for row in df_list:
+            ws.append(row)
+
+        # Apply data formatting and apply borders to all data cells
+
+        # los color settings
+        los_colors = {
+            "A": "90EE90",  # Light green
+            "B": "ADFF2F",  # Green yellow
+            "C": "FFFF00",  # Yellow
+            "D": "FFA500",  # Orange
+            "E": "FF6347",  # Tomato
+            "F": "FF0000",  # Red
+        }
+
+        num_data_rows = len(merged_df)
+        for row_idx in range(3, 3 + num_data_rows):
+            for col_idx in range(len(merged_df.columns)):
+                cell = ws.cell(row=row_idx, column=col_idx + 1)
+                column_name = merged_df.columns[col_idx]
+
+                if "Flow" in column_name:
+                    cell.number_format = "#,##0"
+                elif "PCT" in column_name:
+                    cell.number_format = "0.0%"
+                elif "Ratio" in column_name or "Intensity" in column_name:
+                    cell.number_format = "0.00"
+                elif "Dominant_LOS" in column_name:
+                    cell.alignment = header_style["alignment"]
+                    if cell.value in los_colors:
+                        cell.fill = PatternFill(
+                            start_color=los_colors[cell.value],
+                            end_color=los_colors[cell.value],
+                            fill_type="solid",
+                        )
+
+                self._apply_cell_style(cell, border=header_style["border"])
+
+        # set the column widths
+
+        column_widths = {
+            "A": 12,  # Direction
+            "B": 18,  # Type
+            "C": 15,  # Avg_PCE_Flow_AM
+            "D": 15,  # Avg_PCE_Flow_PM
+            "E": 15,  # Peak_PCE_Flow_Diff
+            "F": 15,  # Avg_VC_ratios_AM
+            "G": 15,  # Avg_VC_ratios_PM
+            "H": 12,  # VC_Ratio_Diff
+            "I": 12,  # Dominant_LOS_AM
+            "J": 12,  # Dominant_LOS_PM
+            "K": 12,  # LOS_Counts_AM
+            "L": 12,  # LOS_Counts_PM
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        # freeze first row
+        ws.freeze_panes = "A3"
+
+        log_analysis_step(
+            "Excel Generator", "Completed creating AM and PM comparison sheet."
+        )
 
     def add_metadata_sheet(self, metadata: Dict) -> None:
         """
@@ -411,9 +851,59 @@ class ExcelGenerator:
             4. Add project description at top
             5. Include data source information
         """
-        # TODO: Implement this method
-        # Hint: Write metadata as two columns: Key, Value
-        pass
+        log_analysis_step("Excel Generator", "Start adding metadata sheet")
+
+        ws = self.wb.create_sheet("Metadata")
+        header_style = self._create_header_style()
+
+        ws["A1"] = "Analysis Metadata"
+        ws.merge_cells("A1:B1")
+
+        # Title formatting
+        title_font = Font(name="Calibri", size=16, bold=True)
+        title_border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["A1"].border = title_border
+
+        ws["A3"] = "Key"
+        ws["B3"] = "Value"
+
+        for col in ["A", "B"]:
+            cell = ws[f"{col}3"]
+            self._apply_cell_style(
+                cell,
+                font=header_style["font"],
+                fill=header_style["fill"],
+                border=header_style["border"],
+                alignment=header_style["alignment"],
+            )
+
+        # fill in metadata from row 4
+        row_num = 4
+        for key, value in metadata.items():
+            ws.cell(row=row_num, column=1, value=key)
+            ws.cell(row=row_num, column=2, value=value)
+
+            for col_idx in [1, 2]:
+                self._apply_cell_style(
+                    ws.cell(row=row_num, column=col_idx), border=header_style["border"]
+                )
+            row_num += 1
+
+        column_widths = {
+            "A": 25,  # key
+            "B": 40,  # value
+        }
+
+        self._set_column_widths(ws, column_widths)
+
+        log_analysis_step("Excel Generator", "Completed adding metadata sheet")
 
     def save(self) -> None:
         """
@@ -428,6 +918,15 @@ class ExcelGenerator:
             3. Log completion with file path
             4. Handle any save errors
         """
-        # TODO: Implement this method
-        # Hint: Use self.workbook.save(self.output_path)
-        pass
+        try:
+            log_analysis_step("Excel Generator", f"Saving Excel to {self.output_path}")
+            self.wb.save(self.output_path)
+            log_analysis_step("Excel Generator", f"Saved Excel to {self.output_path}")
+        except PermissionError as e:
+            logger.error(
+                f"Permission denied when saving to {self.output_path}: {str(e)}"
+            )
+            raise
+        except OSError as e:
+            logger.error(f"Failed to save workbook to {self.output_path}: {str(e)}")
+            raise
