@@ -244,3 +244,232 @@ class ScagModelOrchestrator:
             f"Completed analyzing multiple section data for year {year}, sections {sections}",
         )
         return results_dict
+
+    def combine_section_data(
+        self, section_results: Dict[int, Tuple[pd.DataFrame, Dict]]
+    ) -> pd.DataFrame:
+        """
+        Combine data from multiple sections into a single DataFrame.
+
+
+        Args:
+            section_results: Dictionary from analyze_multiple_sections()
+
+        Returns:
+            pd.DataFrame: Combined DataFrame with all sections
+
+        Example:
+            >>> results = orchestrator.analyze_multiple_sections(2019, [1, 2, 3])
+            >>> combined_df = orchestrator.combine_section_data(results)
+            >>> print(f"Total segments: {len(combined_df)}")
+
+        Steps to implement:
+            1. Extract DataFrames from section_results
+            2. Add 'Section' column to each DataFrame
+            3. Concatenate all DataFrames using pd.concat()
+            4. Reset index
+            5. Sort by section and segment
+            6. Return combined DataFrame
+        """
+        # TODO: Implement this method
+        # Hint 1: Use list comprehension to extract DataFrames
+        # Hint 2: Add section identifier before concatenating
+        # Hint 3: Use pd.concat(dfs, ignore_index=True)
+
+        dfs = []
+
+        for section, (df, stats) in section_results.items():
+            df_copy = df.copy()
+            df_copy["Section"] = section
+            dfs.append(df_copy)
+
+        combined_df = pd.concat(dfs, ignore_index=True)
+
+        return combined_df
+
+    def generate_excel_report(
+        self,
+        year: int,
+        section_results: Dict[int, Tuple[pd.DataFrame, Dict]],
+        output_filename: Optional[str] = None,
+    ) -> str:
+        """
+        Generate comprehensive Excel report.
+
+        Args:
+            year: Analysis year
+            section_results: Results from analyze_multiple_sections()
+            output_filename: Custom output filename (optional)
+
+        Returns:
+            str: Path to generated Excel file
+
+        Example:
+            >>> results = orchestrator.analyze_multiple_sections(2019, [1, 2, 3])
+            >>> filepath = orchestrator.generate_excel_report(2019, results)
+            >>> print(f"Report saved to: {filepath}")
+
+        Steps to implement:
+            1. Combine all section data
+            2. Generate output filename if not provided
+            3. Create ExcelGenerator instance
+            4. Create summary sheet with all segment data
+            5. Create AADT analysis sheet
+            6. Create peak hour analysis sheets (AM and PM)
+            7. Create capacity analysis sheets (AM and PM)
+            8. Create truck analysis sheet
+            9. Create AM vs PM comparison sheet
+            10. Add metadata sheet
+            11. Save workbook
+            12. Return output filepath
+        """
+        # TODO: Implement this method
+        # Hint 1: Default filename format: f"I5_{year}_Analysis_{timestamp}.xlsx"
+        # Hint 2: Collect summary data from all analyzers
+        # Hint 3: Create metadata dictionary with analysis info
+
+        combined_df = self.combine_section_data(section_results=section_results)
+        if not output_filename:
+            output_filename = f"I5_{year}_Analysis_{timestamp}.xlsx"
+
+        pass
+
+    def run_full_analysis(
+        self, years: List[int], sections: List[int]
+    ) -> Dict[int, str]:
+        """
+        Run complete analysis for multiple years and sections.
+        為多個年份和路段執行完整分析。
+
+        Args:
+            years: List of years to analyze
+            sections: List of sections to analyze for each year
+
+        Returns:
+            dict: Dictionary mapping year to output Excel file path
+                {
+                    2019: "data/output/I5_2019_Analysis.xlsx",
+                    2045: "data/output/I5_2045_Analysis.xlsx"
+                }
+
+        Example:
+            >>> orchestrator = I5AnalysisOrchestrator()
+            >>> reports = orchestrator.run_full_analysis([2019, 2045], [1, 2, 3])
+            >>> for year, filepath in reports.items():
+            ...     print(f"{year} report: {filepath}")
+
+        Steps to implement:
+            1. Log the start of full analysis
+            2. Initialize results dictionary
+            3. Loop through years
+            4. For each year:
+                a. Analyze all sections
+                b. Generate Excel report
+                c. Store filepath in results
+            5. Log completion with summary
+            6. Return results dictionary
+        """
+        # TODO: Implement this method
+        # Hint 1: Use analyze_multiple_sections() for each year
+        # Hint 2: Use generate_excel_report() for each year
+        # Hint 3: Handle errors gracefully
+        pass
+
+    def parse_arguments() -> argparse.Namespace:
+        """
+        Parse command-line arguments.
+        解析命令列參數。
+
+        Returns:
+            argparse.Namespace: Parsed arguments
+
+        Example:
+            >>> args = parse_arguments()
+            >>> print(args.years)  # [2019, 2045]
+            >>> print(args.sections)  # [1, 2, 3]
+
+        Steps to implement:
+            1. Create ArgumentParser with description
+            2. Add --years argument (list of integers, required)
+            3. Add --sections argument (list of integers, required)
+            4. Add --output-dir argument (string, optional, default="data/output")
+            5. Add --verbose flag (boolean)
+            6. Parse and return arguments
+        """
+        # TODO: Implement this function
+        # Hint 1: Use argparse.ArgumentParser()
+        # Hint 2: Use nargs='+' for list arguments
+        # Hint 3: Use type=int for integer arguments
+        # Hint 4: Use action='store_true' for boolean flags
+        pass
+
+    def validate_inputs(years: List[int], sections: List[int]) -> Tuple[bool, str]:
+        """
+        Validate user inputs.
+        驗證使用者輸入。
+
+        Args:
+            years: List of years to validate
+            sections: List of sections to validate
+
+        Returns:
+            tuple: (is_valid, error_message)
+                - is_valid: True if inputs are valid
+                - error_message: Error description if invalid, empty string if valid
+
+        Example:
+            >>> valid, msg = validate_inputs([2019, 2045], [1, 2, 3])
+            >>> if not valid:
+            ...     print(f"Error: {msg}")
+
+        Steps to implement:
+            1. Check years are in valid range (2019, 2045)
+            2. Check sections are in valid range (1, 2, 3)
+            3. Check lists are not empty
+            4. Return (True, "") if all valid
+            5. Return (False, error_message) if invalid
+        """
+        # TODO: Implement this function
+        # Hint 1: Valid years are defined in config.YEARS
+        # Hint 2: Valid sections are 1, 2, 3
+        # Hint 3: Return early on first error found
+        pass
+
+    def main() -> int:
+        """
+        Main entry point for the analysis.
+        分析的主要入口點。
+
+        Returns:
+            int: Exit code (0 for success, 1 for error)
+
+        Example:
+            Running from command line:
+            $ python -m src.main --years 2019 2045 --sections 1 2 3
+
+        Steps to implement:
+            1. Setup logging
+            2. Parse command-line arguments
+            3. Validate inputs
+            4. Create orchestrator
+            5. Run full analysis
+            6. Print summary of results
+            7. Handle errors and return appropriate exit code
+        """
+        # TODO: Implement this function
+        # Hint 1: Use try-except to catch all errors
+        # Hint 2: Print user-friendly messages
+        # Hint 3: Return 0 on success, 1 on error
+        pass
+
+
+if __name__ == "__main__":
+    """
+    Script entry point.
+
+    Usage:
+        python -m src.main --years 2019 2045 --sections 1 2 3
+        python -m src.main --years 2019 --sections 1 --output-dir custom_output
+        python -m src.main --years 2019 2045 --sections 1 2 3 --verbose
+    """
+    sys.exit(main())
